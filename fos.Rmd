@@ -1,0 +1,30 @@
+---
+title: "midcourse"
+output: html_document
+date: '2023-01-04'
+---
+#Load Libraries
+```{r}
+library(dplyr)
+```
+
+
+#Load data
+```{r}
+fos16<- read_csv('data/FieldOfStudyData1415_1516_PP.csv')
+fos17<- read_csv('data/FieldOfStudyData1516_1617_PP.csv')
+fos18<- read_csv('data/FieldOfStudyData1617_1718_PP.csv')
+fos19<- read_csv('data/FieldOfStudyData1718_1819_PP.csv')
+```
+#Add origin year column
+```{r}
+fos16 <- fos16 %>% mutate(org_yr = "1415_1516")
+fos17 <- fos17 %>% mutate(org_yr = "1516_1617")
+fos18 <- fos18 %>% mutate(org_yr = "1617_1718")
+fos19 <- fos19 %>% mutate(org_yr = "1718_1819")
+```
+
+#join dataframes
+```{r}
+fos_all <- rbind(fos16, fos17, fos18, fos19)
+```
