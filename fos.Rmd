@@ -5,6 +5,7 @@ date: '2023-01-04'
 ---
 #Load Libraries
 ```{r}
+library(tidyverse)
 library(dplyr)
 ```
 
@@ -28,3 +29,65 @@ fos19 <- fos19 %>% mutate(org_yr = "1718_1819")
 ```{r}
 fos_all <- rbind(fos16, fos17, fos18, fos19)
 ```
+```{r}
+colnames(fos_all)
+```
+```{r}
+fos_all %>% 
+  ggplot(aes(x = org_yr, y= EARN_MDN_HI_1YR))+
+  geom_bar(stat = "identity")
+```
+```{r}
+fos_all %>% 
+  ggplot(aes(x = org_yr, y= EARN_MDN_HI_2YR))+
+  geom_bar(stat = "identity")
+```
+
+
+
+#Merged Data (Instituition Level Data)
+```{r}
+
+```
+```{r}
+colnames(m21)
+```
+
+```{r}
+m21$year <- rep(c(2021))
+```
+```{r}
+m97 <- read_csv("data/MERGED1996_97_PP.csv")%>% mutate(year = rep(c(1997)))
+m98 <- read_csv("data/MERGED1997_98_PP.csv")%>% mutate(year = rep(c(1998)))
+m99 <- read_csv("data/MERGED1998_99_PP.csv")%>% mutate(year = rep(c(1999)))
+m00 <- read_csv("data/MERGED1999_00_PP.csv")%>% mutate(year = rep(c(2000)))
+
+m01 <- read_csv("data/MERGED2000_01_PP.csv")%>% mutate(year = rep(c(2001)))
+m02 <- read_csv("data/MERGED2001_02_PP.csv")%>% mutate(year = rep(c(2002)))
+m03 <- read_csv("data/MERGED2002_03_PP.csv")%>% mutate(year = rep(c(2003)))
+m04 <- read_csv("data/MERGED2003_04_PP.csv")%>% mutate(year = rep(c(2004)))
+m05 <- read_csv("data/MERGED2004_05_PP.csv")%>% mutate(year = rep(c(2005)))
+m06 <- read_csv("data/MERGED2005_06_PP.csv")%>% mutate(year = rep(c(2006)))
+m07 <- read_csv("data/MERGED2006_07_PP.csv")%>% mutate(year = rep(c(2007)))
+m08 <- read_csv("data/MERGED2007_08_PP.csv")%>% mutate(year = rep(c(2008)))
+m09 <- read_csv("data/MERGED2008_09_PP.csv")%>% mutate(year = rep(c(2009)))
+m10 <- read_csv("data/MERGED2009_10_PP.csv")%>% mutate(year = rep(c(2010)))
+
+m11 <- read_csv("data/MERGED2010_11_PP.csv")%>% mutate(year = rep(c(2011)))
+m12 <- read_csv("data/MERGED2011_12_PP.csv")%>% mutate(year = rep(c(2012)))
+m13 <- read_csv("data/MERGED2012_13_PP.csv")%>% mutate(year = rep(c(2013)))
+m14 <- read_csv("data/MERGED2013_14_PP.csv")%>% mutate(year = rep(c(2014)))
+m15 <- read_csv("data/MERGED2014_15_PP.csv")%>% mutate(year = rep(c(2015)))
+m16 <- read_csv("data/MERGED2015_16_PP.csv")%>% mutate(year = rep(c(2016)))
+m17 <- read_csv("data/MERGED2016_17_PP.csv")%>% mutate(year = rep(c(2017)))
+m18 <- read_csv("data/MERGED2017_18_PP.csv")%>% mutate(year = rep(c(2018)))
+m19 <- read_csv("data/MERGED2018_19_PP.csv")%>% mutate(year = rep(c(2019)))
+m20 <- read_csv("data/MERGED2019_20_PP.csv")%>% mutate(year = rep(c(2020)))
+m21 <- read_csv("data/MERGED2020_21_PP.csv")%>% mutate(year = rep(c(2021)))
+
+```
+
+```{r}
+inst_data <- do.call(rbind,  mget(ls(pattern = "^m\\d{2}")))
+```
+
