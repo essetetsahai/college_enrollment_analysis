@@ -7,36 +7,74 @@ date: '2023-01-04'
 ```{r}
 library(tidyverse)
 library(dplyr)
+library(data.table)
+library(purrr)
 ```
 
 
-#Load data
+#Load Field of study data
 ```{r}
-fos16<- read_csv('data/FieldOfStudyData1415_1516_PP.csv')
-fos17<- read_csv('data/FieldOfStudyData1516_1617_PP.csv')
-fos18<- read_csv('data/FieldOfStudyData1617_1718_PP.csv')
-fos19<- read_csv('data/FieldOfStudyData1718_1819_PP.csv')
+na_str <- c("PrivacySuppressed","NULL")
+colsfos <- c(1:4, 6:14, 42:44, 72, 74,76:101, 110:113)
+
+fos16<- fread('data/FieldOfStudyData1415_1516_PP.csv', na = na_str, select = colsfos)%>% 
+  mutate(org_yr = "1415_1516", year = rep(c(2016)))
+  
+
+fos17<- fread('data/FieldOfStudyData1516_1617_PP.csv', na = na_str, select = colsfos)%>% 
+  mutate(org_yr = "1516_1617", year = rep(c(2017)))
+
+
+fos18<- fread('data/FieldOfStudyData1617_1718_PP.csv', na = na_str, select = colsfos)%>% 
+  mutate(org_yr = "1617_1718", year = rep(c(2018)))
+
+
+fos19<- fread('data/FieldOfStudyData1718_1819_PP.csv', na = na_str, select = colsfos)%>% 
+  mutate(org_yr = "1718_1819", year = rep(c(2019)))
 ```
-#Add origin year column
+
+
+#List of column names
 ```{r}
-fos16 <- fos16 %>% mutate(org_yr = "1415_1516")
-fos17 <- fos17 %>% mutate(org_yr = "1516_1617")
-fos18 <- fos18 %>% mutate(org_yr = "1617_1718")
-fos19 <- fos19 %>% mutate(org_yr = "1718_1819")
+colnames(fos16)
 ```
+
 
 #join dataframes
 ```{r}
 fos_all <- rbind(fos16, fos17, fos18, fos19)
 ```
+
+#Filter out foreign universities
 ```{r}
-colnames(fos_all)
+fos_all %>% group_by(CONTROL) %>% summarise(n_distinct(INSTNM))
 ```
+```{r}
+fos_all <- fos_all %>% filter(CONTROL != "Foreign")
+```
+
+#Get dataframe information
+```{r}
+str(fos_all)
+```
+#Count how many na per column
+```{r}
+data.frame(sapply(fos_all, function(y) sum(length(which(is.na(y)))))) %>% view()
+```
+
+```{r}
+fos_all %>% group_by(CREDDESC, CIPDESC) %>% summarise(nu_awards = sum(IPEDSCOUNT2, na.rm = T))
+```
+
+
+
+
 ```{r}
 fos_all %>% 
-  ggplot(aes(x = org_yr, y= EARN_MDN_HI_1YR))+
+  ggplot(aes(x = year, y= EARN_MDN_HI_1YR))+
   geom_bar(stat = "identity")
 ```
+#comparative barchart for 1yr, 2yr, 3yr earnings
 ```{r}
 fos_all %>% 
   ggplot(aes(x = org_yr, y= EARN_MDN_HI_2YR))+
@@ -45,49 +83,174 @@ fos_all %>%
 
 
 
-#Merged Data (Instituition Level Data)
+
+
+#Read merged(instituition level data)
 ```{r}
+colstokeep <- c(1:8, 11:12, 15:17, 19:23,37:38, 45:47, 56:59, 61:99, 290:388, 397:426, 429:432,
+                438:439, 446,449,459, 462,  472, 475, 485, 488,
+                524, 527, 537, 540, 550, 553, 563, 566, 576, 579, 589, 592,
+                602, 605, 615, 618, 1408:1427, 1432:1447, 1462:1475,
+                1504:1531, #median and n debt breakdown
+                1605:1607, 1609:1617, #demographics
+                1627:1629, #census unemp, povrate, hhincome 
+                1742:1744, 1809:1812, 
+                2042:2044, #number employed 3yrs after comp
+                2394:2399, #all
+                2955:2989 #earnings by yr since completion, income
+                )
+m97 <- fread("data/MERGED1996_97_PP.csv", na = na_str, select = colstokeep) %>%mutate(year = rep(c(1997))) 
+m98 <- fread("data/MERGED1997_98_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(1998)))
+m99 <- fread("data/MERGED1998_99_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(1999)))
+m00 <- fread("data/MERGED1999_00_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2000)))
+
+m01 <- fread("data/MERGED2000_01_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2001)))
+m02 <- fread("data/MERGED2001_02_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2002)))
+m03 <- fread("data/MERGED2002_03_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2003)))
+m04 <- fread("data/MERGED2003_04_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2004)))
+m05 <- fread("data/MERGED2004_05_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2005)))
+m06 <- fread("data/MERGED2005_06_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2006)))
+m07 <- fread("data/MERGED2006_07_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2007)))
+m08 <- fread("data/MERGED2007_08_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2008)))
+m09 <- fread("data/MERGED2008_09_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2009)))
+m10 <- fread("data/MERGED2009_10_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2010)))
+
+m11 <- fread("data/MERGED2010_11_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2011)))
+m12 <- fread("data/MERGED2011_12_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2012)))
+m13 <- fread("data/MERGED2012_13_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2013)))
+m14 <- fread("data/MERGED2013_14_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2014)))
+m15 <- fread("data/MERGED2014_15_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2015)))
+m16 <- fread("data/MERGED2015_16_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2016)))
+m17 <- fread("data/MERGED2016_17_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2017)))
+m18 <- fread("data/MERGED2017_18_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2018)))
+m19 <- fread("data/MERGED2018_19_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2019)))
+m20 <- fread("data/MERGED2019_20_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2020)))
+m21 <- fread("data/MERGED2020_21_PP.csv", na = na_str, select = colstokeep)%>% mutate(year = rep(c(2021)))
 
 ```
+
+
 ```{r}
-colnames(m21)
+data.frame(sapply(m97, function(y) sum(length(which(is.na(y)))))) %>% view()
 ```
 
 ```{r}
-m21$year <- rep(c(2021))
-```
-```{r}
-m97 <- read_csv("data/MERGED1996_97_PP.csv")%>% mutate(year = rep(c(1997)))
-m98 <- read_csv("data/MERGED1997_98_PP.csv")%>% mutate(year = rep(c(1998)))
-m99 <- read_csv("data/MERGED1998_99_PP.csv")%>% mutate(year = rep(c(1999)))
-m00 <- read_csv("data/MERGED1999_00_PP.csv")%>% mutate(year = rep(c(2000)))
-
-m01 <- read_csv("data/MERGED2000_01_PP.csv")%>% mutate(year = rep(c(2001)))
-m02 <- read_csv("data/MERGED2001_02_PP.csv")%>% mutate(year = rep(c(2002)))
-m03 <- read_csv("data/MERGED2002_03_PP.csv")%>% mutate(year = rep(c(2003)))
-m04 <- read_csv("data/MERGED2003_04_PP.csv")%>% mutate(year = rep(c(2004)))
-m05 <- read_csv("data/MERGED2004_05_PP.csv")%>% mutate(year = rep(c(2005)))
-m06 <- read_csv("data/MERGED2005_06_PP.csv")%>% mutate(year = rep(c(2006)))
-m07 <- read_csv("data/MERGED2006_07_PP.csv")%>% mutate(year = rep(c(2007)))
-m08 <- read_csv("data/MERGED2007_08_PP.csv")%>% mutate(year = rep(c(2008)))
-m09 <- read_csv("data/MERGED2008_09_PP.csv")%>% mutate(year = rep(c(2009)))
-m10 <- read_csv("data/MERGED2009_10_PP.csv")%>% mutate(year = rep(c(2010)))
-
-m11 <- read_csv("data/MERGED2010_11_PP.csv")%>% mutate(year = rep(c(2011)))
-m12 <- read_csv("data/MERGED2011_12_PP.csv")%>% mutate(year = rep(c(2012)))
-m13 <- read_csv("data/MERGED2012_13_PP.csv")%>% mutate(year = rep(c(2013)))
-m14 <- read_csv("data/MERGED2013_14_PP.csv")%>% mutate(year = rep(c(2014)))
-m15 <- read_csv("data/MERGED2014_15_PP.csv")%>% mutate(year = rep(c(2015)))
-m16 <- read_csv("data/MERGED2015_16_PP.csv")%>% mutate(year = rep(c(2016)))
-m17 <- read_csv("data/MERGED2016_17_PP.csv")%>% mutate(year = rep(c(2017)))
-m18 <- read_csv("data/MERGED2017_18_PP.csv")%>% mutate(year = rep(c(2018)))
-m19 <- read_csv("data/MERGED2018_19_PP.csv")%>% mutate(year = rep(c(2019)))
-m20 <- read_csv("data/MERGED2019_20_PP.csv")%>% mutate(year = rep(c(2020)))
-m21 <- read_csv("data/MERGED2020_21_PP.csv")%>% mutate(year = rep(c(2021)))
-
+df_all <- mget(ls(pattern = "^m\\d{2}"))
 ```
 
 ```{r}
-inst_data <- do.call(rbind,  mget(ls(pattern = "^m\\d{2}")))
+new_list <- lapply(df_all, function(x) filter(x, ((PREDDEG>1)&(HIGHDEG>1)&(PREDDEG<4))))
+
+list2env(new_list, environment())
 ```
+
+
+
+#Row bind Inst Data
+
+```{r}
+inst_data <- do.call(rbind, new_list)
+```
+```{r}
+sapply(inst_data, summary)
+```
+
+```{r}
+data.frame(sapply(inst_data, function(y) sum(length(which(is.na(y)))))) %>% view()
+```
+
+```{r}
+dictcsv<- read_csv("data/dictionary.csv")
+dictcsv<- dictcsv %>% drop_na(`VARIABLE NAME...2`)
+```
+
+```{r}
+setnames(inst_data, old = dictcsv$`VARIABLE NAME...2`, new = dictcsv$`developer-friendly name...6`, skip_absent = TRUE)
+```
+
+```{r}
+inst_data <- inst_data %>% select(-degree_urbanization) %>% 
+  mutate(highestdegawrd = case_when(
+      degrees_awarded.highest == 2 ~ "Associate",
+      degrees_awarded.highest == 3 ~ "Bachelors",
+      degrees_awarded.highest == 4 ~ "Graduate"),
+    predomdegawrd = case_when(
+      degrees_awarded.predominant == 2 ~ "Predominantly Associate",
+      degrees_awarded.predominant == 3 ~ "Predominantly Bachelors",
+      degrees_awarded.predominant == 4 ~ "Entirely Graduate"),
+    public_private = case_when(
+      ownership == 1 ~ "Public",
+      ownership == 2 ~ "Private nonprofit",
+      ownership == 3 ~ "Private for-profit"),
+    region = case_when(
+      region_id == 0 ~ "US Service Schools", 
+      region_id == 1 ~ "New England",
+      region_id == 2 ~ "Mid East",
+      region_id == 3 ~ "Great Lakes",
+      region_id == 4 ~ "Plains",
+      region_id == 5 ~ "Southeast",
+      region_id == 6 ~ "Southwest",
+      region_id == 7 ~ "Rocky Mountains",
+      region_id == 8 ~ "Far West",
+      region_id == 9 ~ "Outlying Areas")
+    
+    )
+```
+
+
+
+
+```{r}
+inst_data %>% group_by(locale) %>% summarise(n_distinct(id))
+```
+
+
+```{r}
+data.frame(sapply(inst_data, function(y) sum(length(which(is.na(y)))))) %>% view()
+```
+
+#Data Exploration
+
+```{r}
+inst_data %>% 
+  group_by(year) %>% 
+  summarise(publicv = sum(title_iv.public.all, na.rm = T)) %>% 
+  ggplot(aes(x=year, y=publicv))+
+  geom_line()
+  
+```
+```{r}
+inst_data %>% group_by(year) %>% summarize(sum(title_iv.public.all, na.rm = T))
+```
+#Time Series by Public and Private TitleIV
+```{r}
+inst_data %>% 
+  group_by(year) %>% 
+  summarise(publicv = sum(title_iv.public.all, na.rm = T),
+            private = sum(title_iv.private.all, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=publicv), color = "red")+
+  geom_point(aes(y=publicv), color = "red")+
+  geom_line(aes(y=private), color = "blue")+
+  geom_point(aes(y=private), color = "blue")
+  
+```
+```{r}
+inst_data %>% 
+  group_by(year) %>% 
+  summarise(enrollmentsum = mean(enrollment.all, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=enrollmentsum), color = "red")+
+  geom_point(aes(y=enrollmentsum))
+  
+  
+```
+
+
+
+
+
+
+
+
 
