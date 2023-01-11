@@ -9,6 +9,8 @@ library(tidyverse)
 library(dplyr)
 library(data.table)
 library(purrr)
+library(sf)
+library(leaflet)
 ```
 
 
@@ -159,15 +161,27 @@ sapply(inst_data, summary)
 data.frame(sapply(inst_data, function(y) sum(length(which(is.na(y)))))) %>% view()
 ```
 
+#Dictionary/Key for column names
 ```{r}
 dictcsv<- read_csv("data/dictionary.csv")
 dictcsv<- dictcsv %>% drop_na(`VARIABLE NAME...2`)
 ```
 
+
+#Change column names
 ```{r}
 setnames(inst_data, old = dictcsv$`VARIABLE NAME...2`, new = dictcsv$`developer-friendly name...6`, skip_absent = TRUE)
 ```
 
+
+
+
+#Check what program year institutions are
+```{r}
+inst_data %>% filter(!is.na(avg_net_price.program_year)) %>% select(name, avg_net_price.program_year, predomdegawrd, highestdegawrd) %>% view()
+```
+
+#Mutate new columns based on key
 ```{r}
 inst_data <- inst_data %>% select(-degree_urbanization) %>% 
   mutate(highestdegawrd = case_when(
@@ -203,11 +217,18 @@ inst_data <- inst_data %>% select(-degree_urbanization) %>%
 ```{r}
 inst_data %>% group_by(locale) %>% summarise(n_distinct(id))
 ```
-
+#export list of column names and how many nas
 
 ```{r}
-data.frame(sapply(inst_data, function(y) sum(length(which(is.na(y)))))) %>% view()
+# columnlist <- data.frame(sapply(inst_data, function(y) sum(length(which(is.na(y))))))
+# columnlist<- cbind("name" =rownames(columnlist), columnlist)
+# 
+# library(writexl)
+# writexl::write_xlsx(columnlist, "columnlist.xlsx")
 ```
+
+
+
 
 #Data Exploration
 
@@ -232,7 +253,10 @@ inst_data %>%
   geom_line(aes(y=publicv), color = "red")+
   geom_point(aes(y=publicv), color = "red")+
   geom_line(aes(y=private), color = "blue")+
-  geom_point(aes(y=private), color = "blue")
+  geom_point(aes(y=private), color = "blue")+
+  scale_x_continuous(breaks = seq(1995, 2022, 2))+
+  ylab("enrollment")+
+  ggtitle("Title IV School Enrollments Private vs Public")
   
 ```
 ```{r}
@@ -245,12 +269,241 @@ inst_data %>%
   
   
 ```
+```{r}
+inst_data %>% 
+  group_by(year) %>% 
+  summarise(instatetuit = mean(tuition.in_state, na.rm = T),
+            instexpend = mean(instructional_expenditure_per_fte, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=instatetuit), color = "red")+
+  geom_point(aes(y=instatetuit))+
+  geom_line(aes(y=instexpend))
+```
+
+```{r}
+inst_data %>% arrange(desc(instructional_expenditure_per_fte)) %>% select(name, instructional_expenditure_per_fte) %>% view()
+```
+
+#### Price/tuition
+
+```{r}
+inst_data %>% 
+  group_by(year) %>% 
+  summarise(instatetuit = median(tuition.in_state, na.rm = T),
+            instexpend = median(instructional_expenditure_per_fte, na.rm = T),
+            outstatetuit = median(tuition.out_of_state, na.rm = T),
+            costattendance = median(attendance.academic_year, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=instatetuit), color = "red")+
+  geom_point(aes(y=instatetuit))+
+  geom_line(aes(y=instexpend))+
+  geom_line(aes(y=outstatetuit), color = "blue")+
+  geom_point(aes(y=outstatetuit))+
+  geom_line(aes(y=costattendance), color = "green")+
+  geom_point(aes(y=costattendance))+
+  ggtitle("Instate tuition and instructional expenditure per fte")
+```
 
 
+```{r}
+inst_data %>% filter(!is.na(tuition.program_year))
+```
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(li = mean(share_lowincome.0_30000, na.rm = T),
+            mi = mean(share_middleincome.30001_48000, na.rm = T),
+            mi2= mean(share_middleincome.48001_75000, na.rm = T),
+            hi = mean(share_highincome.75001_110000, na.rm = T),
+            hi2 = mean(share_highincome.110001plus, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=li), color = "red")+
+  geom_line(aes(y=mi), color = "blue")+
+  geom_line(aes(y=mi2), color = "darkgreen")+
+  geom_line(aes(y=hi), color = "purple")+
+  geom_line(aes(y=hi2), color = "orange")
+```
 
 
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(li = mean(share_dependent_lowincome.0_300000, na.rm = T),
+            mi = mean(share_dependent_middleincome.300001_48000, na.rm = T),
+            mi2= mean(share_dependent_middleincome.48001_75000, na.rm = T),
+            hi = mean(share_dependent_highincome.75001_110000, na.rm = T),
+            hi2 = mean(share_dependent_highincome.110001plus, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=li), color = "red")+
+  geom_line(aes(y=mi), color = "blue")+
+  geom_line(aes(y=mi2), color = "darkgreen")+
+  geom_line(aes(y=hi), color = "purple")+
+  geom_line(aes(y=hi2), color = "orange")
+```
 
 
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(li = mean(share_independent_lowincome.0_30000, na.rm = T),
+            mi = mean(share_independent_middleincome.30001_48000, na.rm = T),
+            mi2= mean(share_independent_middleincome.48001_75000, na.rm = T),
+            hi = mean(share_independent_highincome.75001_110000, na.rm = T),
+            hi2 = mean(share_independent_highincome.110001plus, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=li), color = "red")+
+  geom_line(aes(y=mi), color = "blue")+
+  geom_line(aes(y=mi2), color = "darkgreen")+
+  geom_line(aes(y=hi), color = "purple")+
+  geom_line(aes(y=hi2), color = "orange")
+```
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(wht = mean(drewht, na.rm = T),
+            blk = mean(demographics.race_ethnicity.black, na.rm = T),
+            his= mean(demographics.race_ethnicity.hispanic, na.rm = T),
+            asi = mean(demographics.race_ethnicity.asian, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=wht), color = "red")+
+
+  geom_line(aes(y=blk), color = "blue")+
+  
+  geom_line(aes(y=his), color = "purple")+
+  geom_line(aes(y=asi), color = "orange")+
+  scale_x_continuous(breaks = seq(2000, 2022, 2))
+```
+```{r}
+inst_data <- inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
+                               demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
+```
+
+```{r}
+inst_data %>% select(year, drewht, demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white) %>% arrange(demographics.race_ethnicity.white_2000) %>% view()
+```
+
+
+```{r}
+inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
+                               demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
+```
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(avg = mean(share_firstgeneration, na.rm = T),
+            mi = mean(share_firstgeneration_parents.middleschool, na.rm = T),
+            hi= mean(share_firstgeneration_parents.highschool, na.rm = T),
+            col = mean(share_firstgeneration_parents.somecollege, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=avg), color = "red")+
+  geom_line(aes(y=mi), color = "blue")+
+  
+  geom_line(aes(y=hi), color = "purple")+
+  geom_line(aes(y=col), color = "orange")+
+  ggtitle("Enrollment by First Generation")
+```
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(avg = mean(title_iv.withdrawn_by.2yrs, na.rm = T),
+            mi = mean(title_iv.still_enrolled_by.2yrs, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=avg), color = "red")+
+  geom_point(aes(y=avg), color = "red")+
+  geom_line(aes(y=mi), color = "blue")+
+  geom_point(aes(y=mi), color = "blue")
+  
+  
+```
+
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(liwd = mean(title_iv.low_inc.withdrawn_by.2yrs, na.rm = T),
+            lien = mean(title_iv.low_inc.still_enrolled_by.2yrs, na.rm = T),
+            midwd = mean(title_iv.mid_inc.withdrawn_by.2yrs, na.rm = T),
+            midenr = mean(title_iv.mid_inc.still_enrolled_by.2yrs, na.rm = T),
+            hiwd = mean(title_iv.high_inc.withdrawn_by.2yrs, na.rm = T),
+            hien = mean(title_iv.high_inc.still_enrolled_by.2yrs, na.rm = T)
+            ) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=liwd), color = "purple",linetype = "dashed", size = 1)+
+  geom_point(aes(y=liwd), color = "purple", size = 1)+
+  geom_line(aes(y=lien), color = "purple", size =0.75)+
+  #geom_point(aes(y=mi), color = "royalblue4")+
+  geom_line(aes(y=midwd), color = "chartreuse4", linetype = "dashed", size=0.75)+
+  geom_line(aes(y=midenr), color = "chartreuse4", size = 0.75)+
+  geom_line(aes(y=hiwd), color = "darkgoldenrod1", linetype = "dashed", size=0.75)+
+  geom_line(aes(y=hien), color = "darkgoldenrod1", size = 0.75)+
+  scale_x_continuous(breaks=seq(2000, 2022, 1))+
+  theme_minimal()
+  
+  
+```
+
+```{r}
+inst_data %>%group_by(year) %>%
+  summarise(fewd = mean(title_iv.female.withdrawn_by.2yrs, na.rm = T),
+            feen = mean(title_iv.female.still_enrolled_by.2yrs, na.rm = T),
+            mawd = mean(title_iv.male.withdrawn_by.2yrs, na.rm = T),
+            maen = mean(title_iv.male.still_enrolled_by.2yrs, na.rm = T),
+            ) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=fewd), color = "purple" , linetype = "dashed", size = 1)+
+  
+  geom_line(aes(y=feen), color = "purple", size =0.75)+
+  #geom_point(aes(y=mi), color = "royalblue4")+
+  geom_line(aes(y=mawd), color = "chartreuse4", linetype = "dashed", size=0.75)+
+  geom_line(aes(y=maen), color = "chartreuse4", size = 0.75)+
+  
+  scale_x_continuous(breaks=seq(2000, 2022, 1))+
+  theme_minimal()
+  
+```
+
+```{r}
+#write_csv(inst_data,"inst_data.csv")
+```
+
+```{r}
+latlngdf <- m21 %>% select(UNITID,ACCREDAGENCY, LATITUDE, LONGITUDE)
+```
+```{r}
+latlngdf <- latlngdf %>% rename("id" = "UNITID")
+```
+
+```{r}
+inst_data2 <- left_join(inst_data, latlngdf, by="id")
+```
+
+```{r}
+inst_data2 %>% select(id, operating, name, accreditor, ACCREDAGENCY, location.lat, LATITUDE, location.lon, LONGITUDE ) %>% view
+```
+
+```{r}
+inst_data2 %>% filter(is.na(ACCREDAGENCY)) %>% select(name, ACCREDAGENCY, LATITUDE, LONGITUDE)%>% view()
+```
+```{r}
+inst_data2<- inst_data2 %>% 
+  filter(!is.na(ACCREDAGENCY)) %>% 
+  filter(!is.na(LATITUDE)) %>% 
+  filter(!is.na(LONGITUDE)) 
+```
+
+```{r}
+inst_data2sf <- st_as_sf(inst_data2, coords = c("LATITUDE", "LONGITUDE"), crs = 4326)
+```
+
+
+```{r}
+write_csv(inst_data2sf,"inst_data2.csv")
+```
+
+
+```{r}
+inst_data2sf() %>% 
+    leaflet() %>% 
+    addProviderTiles(provider = "CartoDB.PositronNoLabels") %>%
+    setView(lng = -86.7816, lat = 36.1627, zoom = 12)
+```
 
 
 
