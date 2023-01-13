@@ -18,20 +18,42 @@ shinyUI(fluidPage(theme = shinytheme("flatly"),
                                                                        "Rocky Mountains" =7,
                                                                        "Far West" =8,
                                                                        "Outlying Areas" =9),
-                                                        selected = 5),
+                                                                        selected = 5),
                                      checkboxGroupInput("checkGroupo", 
                                                         label = h3("Select Ownership"), 
                                                         choices = list("Public"=1, 
                                                                        "Private Nonprofit"=2,
-                                                                       "Private for-profit"=3                                                              ),
-                                                        selected = 1)
-                                     ),#sidebarpanel
-                                 mainPanel(fluidRow(
-                                   splitLayout(cellWidths = c("50%", "50%"), plotOutput("distPlot"),
-                                               plotOutput("distPlot2"))),
+                                                                       "Private for-profit"=3),
+                                                                        selected = 2),
+                                     width = 2),#sidebarpanel
+                                 
+                                 #mainPanel
+                                 mainPanel(fluidRow(column(8, leafletOutput("myMap") %>% 
+                                                             withSpinner(color="#0dc5c1"),
+                                                           DT::dataTableOutput("mytable")),
+                                                    column(4, plotOutput("distPlot"), 
+                                                           plotOutput("distPlot2"),
+                                                           plotOutput("od_ton_chart")))
+                                                    
+                                                           
+                                                   
+                                                    
+                                                    
+                                  
+                                              ) #mainpanel
                                    
-                                           leafletOutput("myMap") %>% withSpinner(color="#0dc5c1"),
-                                           DT::dataTableOutput("mytable"),
-                                           plotOutput("od_ton_chart")) #mainpanel
-                             ))))
+                                           
+                                           
+                                            
+                             ), #)tabpanel1
+                             
+                             #tabPanel2(#
+                             tabPanel("Tab2")
+                             )
+                  
+                  ))
 
+
+
+
+#splitLayout(cellWidths = c("50%", "50%")

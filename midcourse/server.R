@@ -111,7 +111,14 @@ shinyServer(function(input, output, session) {
      if(!is.null(click$id)){
          output$mytable = DT::renderDataTable({
              selected
-                }) 
+                }, 
+             options = list(
+                 dom = 'Bfrtip',
+                 scrollY = 500,
+                 scroller = TRUE,
+                 scrollX=TRUE
+                 #columnDefs = list(list(width = '200px', targets = "_all"))
+                 )) 
      
 }
      
