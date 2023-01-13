@@ -101,6 +101,8 @@ shinyServer(function(input, output, session) {
 
             
     })
+ 
+ ##observeEvent
  observeEvent(input$myMap_shape_click, {
      click <- input$myMap_shape_click
      print(click)
@@ -113,30 +115,52 @@ shinyServer(function(input, output, session) {
      
 }
      
- })
- selected_od <- reactive({
-     p <- input$myMap_shape_click
-     selected <- df_fil() %>% filter(state_fips2 %in% p$id)
- })
+ })#observeEvent
  
- #plotly that doesn't work
- output$od_ton_chart=renderPlotly({
-     selected <- selected_od()
-     
-     
-         df_sub <- df_fil() %>% filter(state_fips %in% selected$id)  %>%
-             select(ownership, enrollment.all, region)
-         na.omit(df_sub)
-         
-        plot_ly(df_sub, x = ~region, y = ~enrollment.all, type = 'bar', name = 'FAF4 Tons')%>% 
-                 add_trace(y = ~ownership, name = 'FAF5 Tons')%>% 
-                 layout(yaxis = list(title = 'tons (000)'), barmode = 'group')
-     
-     
+ ggplot_data <- reactive({
+     site <- input$myMap_shape_click$id
+     df_fil() %>% filter(state_fips2 %in% site)
+ })
+ output$od_ton_chart <- renderPlot({
+     ggplot_data() %>%
+        dplyr::group_by(year) %>% 
+        dplyr::summarise(val = mean(title_iv.female.withdrawn_by.2yrs, na.rm = T)) %>% 
+     ggplot(aes(year, val)) +
+         geom_line()
+ }) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ # selected_od <- reactive({
+ #     p <- input$myMap_shape_click
+ #     selected <- df_fil() %>% filter(state_fips2 %in% p$id)
+ # })
+ 
+ 
+
+ ##plotly that doesn't work
+ # output$od_ton_chart=renderPlotly({
+ #     selected <- selected_od()
+ #     
+ #     
+ #         df_sub <- df_fil() %>% filter(state_fips %in% selected$id)  %>%
+ #             select(ownership, enrollment.all, region)
+ #         na.omit(df_sub)
+ #         
+ #        plot_ly(df_sub, x = ~region, y = ~enrollment.all, type = 'bar', name = 'FAF4 Tons')%>% 
+ #                 add_trace(y = ~ownership, name = 'FAF5 Tons')%>% 
+ #                 layout(yaxis = list(title = 'tons (000)'), barmode = 'group')
+ #     
+ #     
      
          
      
 
-})
+# })
  
 })

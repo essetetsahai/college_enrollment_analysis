@@ -32,6 +32,6 @@ shinyUI(fluidPage(theme = shinytheme("flatly"),
                                    
                                            leafletOutput("myMap") %>% withSpinner(color="#0dc5c1"),
                                            DT::dataTableOutput("mytable"),
-                                           plotlyOutput("od_ton_chart")) #mainpanel
+                                           plotOutput("od_ton_chart")) #mainpanel
                              ))))
 
