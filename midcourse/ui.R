@@ -25,8 +25,13 @@ shinyUI(fluidPage(theme = shinytheme("flatly"),
                                                                        "Private Nonprofit"=2,
                                                                        "Private for-profit"=3                                                              ),
                                                         selected = 1)
-                                     ),#sidbarpanel
-                                 mainPanel(plotOutput("distPlot"),
-                                           leafletOutput("mymap")) #mainpanel
+                                     ),#sidebarpanel
+                                 mainPanel(fluidRow(
+                                   splitLayout(cellWidths = c("50%", "50%"), plotOutput("distPlot"),
+                                               plotOutput("distPlot2"))),
+                                   
+                                           leafletOutput("myMap") %>% withSpinner(color="#0dc5c1"),
+                                           DT::dataTableOutput("mytable"),
+                                           plotlyOutput("od_ton_chart")) #mainpanel
                              ))))
 
