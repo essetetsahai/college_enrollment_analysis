@@ -89,7 +89,7 @@ fos_all %>%
 
 #Read merged(instituition level data)
 ```{r}
-colstokeep <- c(1:8, 11:12, 15:17, 19:23,37:38, 45:47, 56:59, 61:99, 290:388, 397:426, 429:432,
+colstokeep <- c(1:8, 11:12, 15:18, 19:23,37:38, 45:47, 56:59, 61:99, 290:388, 397:426, 429:432,
                 438:439, 446,449,459, 462,  472, 475, 485, 488,
                 524, 527, 537, 540, 550, 553, 563, 566, 576, 579, 589, 592,
                 602, 605, 615, 618, 1408:1427, 1432:1447, 1462:1475,
@@ -176,10 +176,7 @@ setnames(inst_data, old = dictcsv$`VARIABLE NAME...2`, new = dictcsv$`developer-
 
 
 
-#Check what program year institutions are
-```{r}
-inst_data %>% filter(!is.na(avg_net_price.program_year)) %>% select(name, avg_net_price.program_year, predomdegawrd, highestdegawrd) %>% view()
-```
+
 
 #Mutate new columns based on key
 ```{r}
@@ -210,7 +207,10 @@ inst_data <- inst_data %>% select(-degree_urbanization) %>%
     
     )
 ```
-
+#Check what program year institutions are
+```{r}
+inst_data %>% filter(!is.na(avg_net_price.program_year)) %>% select(name, avg_net_price.program_year, predomdegawrd, highestdegawrd) %>% view()
+```
 
 
 
@@ -358,7 +358,7 @@ inst_data %>%group_by(year) %>%
 
 ```{r}
 inst_data %>%group_by(year) %>%
-  summarise(wht = mean(drewht, na.rm = T),
+  summarise(wht = mean(demographics.race_ethnicity.white, na.rm = T),
             blk = mean(demographics.race_ethnicity.black, na.rm = T),
             his= mean(demographics.race_ethnicity.hispanic, na.rm = T),
             asi = mean(demographics.race_ethnicity.asian, na.rm = T)) %>% 
@@ -372,18 +372,18 @@ inst_data %>%group_by(year) %>%
   scale_x_continuous(breaks = seq(2000, 2022, 2))
 ```
 ```{r}
-inst_data <- inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
-                               demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
+# inst_data <- inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
+#                                demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
 ```
 
 ```{r}
-inst_data %>% select(year, drewht, demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white) %>% arrange(demographics.race_ethnicity.white_2000) %>% view()
+# inst_data %>% select(year, drewht, demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white) %>% arrange(demographics.race_ethnicity.white_2000) %>% view()
 ```
 
 
 ```{r}
-inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
-                               demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
+# inst_data %>% mutate(drewht=if_else(is.na(demographics.race_ethnicity.white),
+#                                demographics.race_ethnicity.white_2000, demographics.race_ethnicity.white)) 
 ```
 
 ```{r}
@@ -466,6 +466,8 @@ inst_data %>%group_by(year) %>%
 ```{r}
 latlngdf <- m21 %>% select(UNITID,ACCREDAGENCY, LATITUDE, LONGITUDE)
 ```
+
+
 ```{r}
 latlngdf <- latlngdf %>% rename("id" = "UNITID")
 ```
@@ -473,6 +475,14 @@ latlngdf <- latlngdf %>% rename("id" = "UNITID")
 ```{r}
 inst_data2 <- left_join(inst_data, latlngdf, by="id")
 ```
+```{r}
+inst_data2 <- inst_data2 %>% 
+  mutate(state_fips2 = ifelse(state_fips <10, 
+                               paste0("0", state_fips), 
+                               state_fips))
+                                    
+```
+
 
 ```{r}
 inst_data2 %>% select(id, operating, name, accreditor, ACCREDAGENCY, location.lat, LATITUDE, location.lon, LONGITUDE ) %>% view
@@ -487,23 +497,22 @@ inst_data2<- inst_data2 %>%
   filter(!is.na(LATITUDE)) %>% 
   filter(!is.na(LONGITUDE)) 
 ```
-
 ```{r}
-inst_data2sf <- st_as_sf(inst_data2, coords = c("LATITUDE", "LONGITUDE"), crs = 4326)
+inst_data3 <- inst_data2 %>% mutate(latt = LATITUDE, longg = LONGITUDE)
 ```
 
 
 ```{r}
-write_csv(inst_data2sf,"inst_data2.csv")
+inst_data3sf <- st_as_sf(inst_data3, coords = c("LATITUDE", "LONGITUDE"), crs = 4326)
 ```
 
 
 ```{r}
-inst_data2sf() %>% 
-    leaflet() %>% 
-    addProviderTiles(provider = "CartoDB.PositronNoLabels") %>%
-    setView(lng = -86.7816, lat = 36.1627, zoom = 12)
+write_rds(inst_data3sf,"inst_data3.rds")
 ```
+
+
+
 
 
 
