@@ -30,26 +30,36 @@ shinyUI(fluidPage(theme = shinytheme("flatly"),
                                  #mainPanel
                                  mainPanel(fluidRow(column(8, leafletOutput("myMap") %>% 
                                                              withSpinner(color="#0dc5c1"),
-                                                           DT::dataTableOutput("mytable")),
-                                                    column(4, plotOutput("distPlot"), 
-                                                           plotOutput("distPlot2"),
-                                                           plotOutput("od_ton_chart")))
-                                                    
-                                                           
-                                                   
-                                                    
-                                                    
-                                  
-                                              ) #mainpanel
-                                   
-                                           
-                                           
-                                            
+                                                           DT::dataTableOutput("mytable"),
+                                                            DT::dataTableOutput("mytable2")),
+                                                    column(4, plotOutput("od_ton_chart"),
+                                                           plotOutput("distPlot"), 
+                                                           plotOutput("distPlot2")
+                                                           ))
+                                          ) #mainpanel
+                                         
                              ), #)tabpanel1
                              
-                             #tabPanel2(#
-                             tabPanel("Tab2")
-                             )
+                             
+                             #tabPanel2(
+                             
+                             tabPanel("Tab2",
+                                      sidebarPanel(
+                                        selectInput("selectprog", 
+                                                           label = h3("Select Program"),
+                                                           choices = programlist,
+                                                           multiple = FALSE
+                                                           
+                                      ),
+                                      selectInput("selectcolor", label = h3("Select Color"),
+                                                  choices = c("public_private", "region"),
+                                                  multiple = FALSE)
+                             ), #sidebarpanel
+                             
+                             #mainpanel
+                             mainPanel(plotOutput('prgmplot'))
+                             )#)tabpanel2
+                  )#navbarpage
                   
                   ))
 

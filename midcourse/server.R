@@ -102,25 +102,25 @@ shinyServer(function(input, output, session) {
             
     })
  
+ 
+
+ 
+ 
+ 
  ##observeEvent
  observeEvent(input$myMap_shape_click, {
      click <- input$myMap_shape_click
      print(click)
      
      selected <- df_fil() %>% filter(state_fips2 == click$id)
+     not_selected <- df_fil() %>% filter(state_fips2 == 47)
      if(!is.null(click$id)){
-         output$mytable = DT::renderDataTable({
-             selected
-                }, 
-             options = list(
-                 dom = 'Bfrtip',
-                 scrollY = 500,
-                 scroller = TRUE,
-                 scrollX=TRUE
-                 #columnDefs = list(list(width = '200px', targets = "_all"))
-                 )) 
-     
-}
+         output$mytable = DT::renderDataTable({selected}, 
+                                              options = list(dom = 'Bfrtip', scrollY = 500, scroller = TRUE, scrollX=TRUE))}
+     else{
+         output$mytable = DT::renderDataTable({not_selected}, 
+                                              options = list(dom = 'Bfrtip', scrollY = 500, scroller = TRUE, scrollX=TRUE))
+     }
      
  })#observeEvent
  
@@ -130,13 +130,44 @@ shinyServer(function(input, output, session) {
  })
  output$od_ton_chart <- renderPlot({
      ggplot_data() %>%
-        dplyr::group_by(year) %>% 
-        dplyr::summarise(val = mean(title_iv.female.withdrawn_by.2yrs, na.rm = T)) %>% 
-     ggplot(aes(year, val)) +
+         dplyr::group_by(year) %>% 
+         dplyr::summarise(val = mean(title_iv.female.withdrawn_by.2yrs, na.rm = T)) %>% 
+         ggplot(aes(year, val)) +
          geom_line()
+         
  }) 
  
+ dat <- reactive({
+    prgmsg$variable = prgmsg[[input$selectprog]]
+    prgmsg$colorvar = prgmsg[[input$selectcolor]]
+    prgmsg
+    
+ })
  
+ 
+ output$prgmplot <- renderPlot({
+     dat() %>% 
+         dplyr::group_by(year, colorvar) %>% 
+         dplyr::summarise(val = mean(variable, na.rm = T)) %>% 
+         ggplot(aes(year, val)) +
+         geom_line(aes(color = colorvar, group = colorvar))+
+         geom_point()+
+         scale_y_continuous(labels = function(x) paste0(x*100, "%"))
+ }) 
+ 
+ # output$scatter <- renderPlot({
+ #     cars_filtered() %>% 
+ #         ggplot(aes_string(x = input$xvariable, y = "mpg")) +
+ #         geom_point()
+ # })
+ # 
+ # output$correlation <- renderText({
+ #     
+ #     correlation <- cor(cars_filtered()$mpg, cars_filtered()[input$xvariable])[1,1] %>% round(3)
+ #     
+ #     paste0("<b>Correlation between mpg and ", input$xvariable, ":</b> ", correlation)
+ #     
+ # })
  
  
  
