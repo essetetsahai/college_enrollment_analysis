@@ -1,0 +1,902 @@
+---
+title: "inst_data_exp"
+output: html_document
+date: '2023-01-14'
+---
+
+```{r}
+library(dplyr)
+library(scales)
+library(sf)
+library(tidyverse)
+```
+
+```{r}
+insdta <-  read_rds('inst_data3.rds')
+insdta <- st_drop_geometry(insdta)
+```
+
+#Select columns to keep for shiny app
+```{r}
+inst_data3 <- insdta %>% select(id, name, city, state, public_private, year, size, degrees_awarded.predominant,  predomdegawrd, degrees_awarded.highest, title_iv.female.withdrawn_by.2yrs, title_iv.female.still_enrolled_by.2yrs, title_iv.male.withdrawn_by.2yrs,title_iv.male.still_enrolled_by.2yrs, year, ownership, region_id, region, latt, longg, geometry, state_fips, state_fips2, enrollment.all)
+```
+
+#Make rds file for shiny app
+```{r}
+write_rds(inst_data3,"inst_data3.rds")
+```
+
+
+```{r}
+prgms <- insdta %>% select(id, name, city, state, degrees_awarded.predominant, degrees_awarded.highest, 
+                           ownership, region_id, size, enrollment.all,  part_time_share, 370:378 
+                           ,starts_with("program_percentage."))
+```
+
+```{r}
+#write_csv(prgms,"prgms.csv")
+```
+
+```{r}
+programnames <- prgms %>% select(starts_with("program_percentage.")) %>% colnames()
+class(programnames)
+```
+
+
+```{r}
+prgms %>%
+    dplyr::group_by(year, public_private) %>% 
+    #mutate(noq = noquote("program_percentage.history")) %>% 
+    dplyr::summarise(val = mean(program_percentage.history, na.rm = T)) %>% 
+    ggplot(aes(year, val)) +
+    geom_line(color = public_private)+
+    scale_y_continuous(labels = function(x) paste0(x*100, "%"))
+```
+
+```{r}
+prgms %>% group_by(year, public_private) %>% summarise(val = mean(program_percentage.history, na.rm = T)) %>% 
+  ggplot(aes(year, val))+
+  geom_line(aes(color = public_private, group = public_private))
+```
+```{r}
+prgms["public_private"]
+    
+```
+
+```{r}
+prognm2 <- programnames[-39]
+prognm2
+```
+
+```{r}
+prognm2 <- as.list(prognm2)
+```
+
+
+
+```{r}
+colnames(prgms[21:58])
+```
+
+
+
+```{r}
+insdta <- insdta %>%select(-c(2:3)) 
+insdta <- insdta %>% select(-c(6, 8, 14:16))
+
+insdta <- insdta %>% select(-c(starts_with("net_price.program_reporter"), 
+                     starts_with("net_price.other_acad"),
+                     avg_net_price.program_year, avg_net_price.other_academic_year,
+                     contains("other_acad_calendar"),
+                     contains("program_reporter"))
+                    )
+
+insdta <- insdta %>% select(-c(contains("other_academic_year"),
+                     contains("program_year"),
+                     title_iv.approval_date))
+
+insdta <- insdta %>% select(-ends_with("pre2010"))
+insdta <- insdta %>% select(-c(ends_with("_2000"), ends_with("_2009")))
+insdta <- insdta %>% select(-c("enrollment.all", ends_with("pooled")))
+
+```
+
+
+```{r}
+insdta <- insdta %>% select(-operating)
+```
+
+```{r}
+insdta <- insdta%>% mutate("Predom_Degree_Awarded" = case_when(
+  predomdegawrd == "Predominantly Associate" ~ "Associate's Degree",
+  predomdegawrd == "Predominantly Bachelors" ~ "Bachelor's Degree"
+))
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+q<- insdta %>% filter(year >2001) %>% 
+  group_by(year) %>% 
+  summarize(adm_rt = mean(admission_rate.overall, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(year, adm_rt),size = 1)+
+  ylab("Admission Rate")+
+  scale_x_continuous(breaks = seq(2000, 2022, 1))+
+  coord_cartesian(ylim = c(0.6, 0.85), expand = TRUE) +
+  scale_y_continuous( labels = percent)+
+   theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  ggtitle('Overall Admission Rate Nationwide')
+q
+ dev.off()
+ggsave(q, width = 10, height = 6, dpi = 300, filename = "AddNationWide.pdf") 
+```
+
+```{r}
+p <- insdta %>% 
+  filter(year >2002) %>% 
+  group_by(year, public_private) %>% 
+  summarize(adm_rt = mean(admission_rate.overall, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=adm_rt, color = public_private), size = 1)+
+  xlim(2002, 2022)+
+  ylab("Admission Rate")+
+  #ylim(0.6,0.8)+
+  
+  coord_cartesian(ylim = c(0.6, 0.85), expand = TRUE) +
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  scale_y_continuous( labels = percent)+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+        legend.title=element_blank())+
+  ggtitle('Admission Rate by Ownership')
+ 
+p
+dev.off()
+ggsave(p, width = 10, height = 6, dpi = 300, filename = "AddOwn.pdf")  
+
+```
+```{r}
+r <- insdta %>% 
+  filter(year >2002) %>% 
+  group_by(year, Predom_Degree_Awarded) %>% 
+  summarize(adm_rt = mean(admission_rate.overall, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=adm_rt, color = Predom_Degree_Awarded), size =1)+
+  xlim(2002, 2022)+
+  #ylim(0.6,0.8)+
+  ylab("Admission Rate")+
+  theme_minimal()+
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+   coord_cartesian(ylim = c(0.6, 0.85), expand = TRUE) +
+  scale_y_continuous( labels = percent)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+        legend.title=element_blank())+
+  ggtitle('Admission Rate by School Type')
+
+r
+dev.off()
+ggsave(r, width = 10, height = 6, dpi = 300, filename = "AddPRED.pdf")  
+```
+
+```{r}
+insdta %>%
+  filter(year >2001) %>% 
+  group_by(year, predomdegawrd) %>% 
+  summarize(adm_rt = mean(admission_rate.by_ope_id, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=adm_rt, color = predomdegawrd), size = 1)+
+  xlim(2002, 2022)+
+  ylim(0.6,0.8)+
+  ylab("Admission Rate")+
+  theme_minimal()+
+  ylim(0.6,0.8)+
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+        legend.title=element_blank())+
+  ggtitle('Admission Rate by School Type')
+```
+
+
+
+
+
+```{r}
+insdta %>% 
+  filter(year > 2001) %>% 
+  group_by(year, predomdegawrd, public_private) %>% 
+  summarize(adm_rt = mean(admission_rate.overall, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=adm_rt, color = public_private))+
+  xlim(2002, 2022)+
+  ylim(0.6,0.8)+
+  
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  ggtitle('Overall admission rate by year, grouped by predominant degree')+
+  facet_wrap( ~ predomdegawrd)
+```
+```{r}
+insdta %>%
+  filter(year >2001) %>% 
+  filter(public_private != "Private for-profit") %>% 
+  group_by(year, public_private) %>% 
+  summarize(act_scr = mean(act_scores.midpoint.cumulative, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=act_scr, color=public_private))+
+  #xlim(2002, 2022)+
+  ylim(20,25)+
+  
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  ggtitle('act midpoint, grouped by type of school')
+```
+
+```{r}
+insdta %>%
+  filter(year >2001) %>% 
+  filter(public_private != "Private for-profit") %>% 
+  group_by(year, public_private) %>% 
+  summarize(sat_avg = mean(sat_scores.average.by_ope_id, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=sat_avg, color=public_private))+
+  #xlim(2002, 2022)+
+  #ylim(20,25)+
+  
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  ggtitle('act midpoint, grouped by type of school')
+```
+
+
+
+
+```{r}
+insdta %>% 
+  group_by(year, highestdegawrd) %>% 
+  summarize(adm_rt = mean(admission_rate.overall, na.rm =T)) %>% 
+  ggplot()+
+  geom_line(aes(x=year, y=adm_rt, color = highestdegawrd))+
+  xlim(2002, 2022)+
+  ylim(0.6,0.8)+
+  
+  scale_x_continuous(breaks = seq(2002, 2022, 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  ggtitle('admission rate by year, grouped by highest degree awarded by institution')
+```
+
+
+
+#Completion Rates
+```{r}
+z<-
+insdta %>% 
+  filter(region_id != 9, region_id != 0) %>% 
+  group_by(year, region, public_private) %>% 
+  summarise(complrt_150_percent_4yi = mean(completion_rate_4yr_150nt, na.rm = T)) %>% 
+  ggplot()+
+  geom_line(aes(x= year, y=complrt_150_percent_4yi, color = region), size = 1)+
+  facet_wrap(~public_private)+
+  ylab("Completion Rate")+
+  ylim(0.2, 1)+
+  scale_y_continuous(labels = percent)+
+ 
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+        legend.title=element_blank() )+
+  
+  ggtitle("4-year Schools")
+z
+dev.off()
+ggsave(z, width = 10, height = 6, dpi = 300, filename = "Comp1.pdf")
+```
+#Overall, completion looks like an upward trend for private nonprofit and public schools. 
+#In general, private non-profit schools have higher completion rates, but public schools
+#show higher year-to-year upward trend in completion rates.
+#There is not a discernable patternfor private for profit schools.
+
+```{r}
+y <- insdta %>%
+  filter(region_id != 9, region_id != 0) %>% 
+  group_by(year, region, public_private) %>% 
+  summarise(complrt_150_pct_l4 = mean(completion_rate_less_than_4yr_150nt, na.rm = T)) %>% 
+  ggplot()+
+  geom_line(aes(x= year, y=complrt_150_pct_l4, color = region), size = 1)+
+  facet_wrap(~public_private)+
+  ylab("Completion Rate")+
+  ylim(0.2, 1)+
+  scale_y_continuous(labels = percent)+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+        legend.title=element_blank())+
+  ggtitle("Less than 4-year Schools")
+y
+
+y
+dev.off()
+ggsave(y, width = 10, height = 6, dpi = 300, filename = "Comp2.pdf")  
+
+```
+
+#Completion rates for less than 4 year schools- private for profit schools show higher
+#trends in completion and public schools show the lowest completion rates.
+
+
+```{r}
+#This is useless
+# insdta <- insdta %>% 
+#   mutate(compl_rt_4yr_150_wht = if_else(
+#                                           (is.na(completion_rate_4yr_150_white)),
+#                                           mean(c(completion_rate_4yr_150_white,completion_rate_4yr_150_white_pre2010), na.rm=T),
+#                                           completion_rate_4yr_150_white,
+#                                           ),
+#          compl_rt_4yr_150_blk = if_else(
+#                                           ((year <2009)&(is.na(completion_rate_4yr_150_black))),
+#                                           completion_rate_4yr_150_black_pre2010,
+#                                           completion_rate_4yr_150_black, ),
+#          compl_rt_4yr_150_hsp = if_else(
+#                                           ((year <2009)&(is.na(completion_rate_4yr_150_hispanic))),
+#                                           completion_rate_4yr_150_hispanic_pre2010,
+#                                           completion_rate_4yr_150_hispanic),
+#          compl_rt_4yr_150_aian = if_else(
+#                                           ((year <2009)&(is.na(completion_rate_4yr_150_aian))),
+#                                           completion_rate_4yr_150_aian_pre2010,
+#                                           completion_rate_4yr_150_aian),
+#          compl_rt_4yr_150_asian = if_else(
+#                                         ((year <2009)&(is.na(completion_rate_4yr_150_asian))),
+#                                           completion_rate_4yr_150_api_pre2010,
+#                                           completion_rate_4yr_150_asian),
+#          compl_rt_4yr_150_nhpi = if_else(
+#                                           ((year <2009)&(is.na(completion_rate_4yr_150_nhpi))),
+#                                           completion_rate_4yr_150_api_pre2010,
+#                                           completion_rate_4yr_150_nhpi)) 
+#  
+  
+  # %>%select(-c(completion_rate_4yr_150_white, completion_rate_4yr_150_white_pre2010,
+  #           completion_rate_4yr_150_black,completion_rate_4yr_150_black_pre2010,
+  #           completion_rate_4yr_150_hispanic_pre2010, completion_rate_4yr_150_hispanic,
+  #           completion_rate_4yr_150_aian_pre2010,completion_rate_4yr_150_aian,
+  #           completion_rate_4yr_150_api_pre2010, completion_rate_4yr_150_asian,
+  #           completion_rate_4yr_150_api_pre2010, completion_rate_4yr_150_nhpi))
+            
+            
+           
+```
+
+
+
+
+
+```{r}
+insdta %>% 
+  filter(year >2009) %>% 
+  group_by(year) %>% 
+   
+  summarise(compl_wht= mean(completion_rate_4yr_150_white , na.rm = T),
+            compl_blk = mean(completion_rate_4yr_150_black, na.rm = T),
+            compl_hsp = mean(completion_rate_4yr_150_hispanic, na.rm = T),
+            compl_asian = mean(completion_rate_4yr_150_asian, na.rm = T),
+            compl_nra = mean(completion_rate_4yr_150_nonresident.alien, na.rm = T),
+            compl_ain = mean(completion_rate_4yr_150_aian)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y= compl_wht), size = 1, color = "#e60049")+
+  geom_line(aes(y= compl_blk), size = 1, color = "#0bb4ff")+
+  geom_line(aes(y= compl_hsp), size = 1, color = "#50e991")+
+  geom_line(aes(y=compl_asian),size = 1, color = "#b33dc6" )+
+  geom_line(aes(y = compl_ain), size = 1, color = "#ef9b20"  )+
+  geom_line(aes(y = compl_nra), size = 1, color = "#e6d800"  )+
+  #facet_wrap(~public_private)+
+  ggtitle("Completion rates for 4yrs by race")
+
+```
+```{r}
+insdta %>% 
+  filter(year > 2004) %>% 
+  group_by(year) %>% 
+  
+  summarise(ret_4yr_ft= mean(retention_rate.four_year.full_time , na.rm = T),
+            ret_l4_ft = mean(retention_rate.lt_four_year.full_time, na.rm = T),
+            ret_4yr_pt = mean(retention_rate.four_year.part_time, na.rm = T),
+            ret_l4yr_pt = mean(retention_rate.lt_four_year.part_time, na.rm = T)) %>% 
+            
+  ggplot(aes(x=year))+
+  geom_line(aes(y= ret_4yr_ft), size = 1, color = "#e60049")+
+  geom_line(aes(y= ret_l4_ft), size = 1, color = "#0bb4ff")+
+  geom_line(aes(y= ret_4yr_pt), size = 1, color = "#50e991")+
+  geom_line(aes(y=ret_l4yr_pt),size = 1, color = "#b33dc6" )+
+  
+  #facet_wrap(~public_private)+
+  ggtitle("Retention Rates by 4yr/less than 4 yr/full time/part time")
+
+```
+
+#Retention rates are higher for 4yr schools and for students who are also full time,
+#retention rates are lower for less than 4 yr schools, and when students are part time.
+
+```{r}
+t <- insdta %>% 
+  filter(region_id != 9, region_id != 0) %>% 
+  filter(public_private != "Private for-profit", year>2001) %>% 
+  group_by(year, public_private, state) %>% 
+  
+  summarise(size= sum(size, na.rm = T)) %>% 
+            
+  ggplot(aes(x=year))+
+  geom_line(aes(y= size, color = public_private), size = 1)+
+  theme_minimal()+
+  theme(axis.text.x = element_blank(),
+        axis.text.y=element_blank(),  #remove y axis labels
+        axis.ticks.y=element_blank() )+
+  xlab("")+
+  ylab("")+
+  facet_wrap(~state, nrow = 5)+
+  guides(fill=guide_legend(title = ""))+
+  guides(color=guide_legend(title = ""))+
+  ggtitle("Total Enrollment of Undergraduate Degree-seeking Students")
+t
+dev.off()
+ggsave(t, width = 10, height = 6, dpi = 300, filename = "st.pdf")
+
+```
+
+
+
+
+
+```{r}
+insdta %>% 
+  group_by(year, public_private) %>% 
+  summarise(number_of_schools = n_distinct(id)) %>% 
+  ggplot(aes(x=year, y=number_of_schools, fill=public_private)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5)+
+  scale_fill_brewer(palette = "Set1")
+```
+
+
+```{r}
+change <- function(df, oldpref, newpref){
+  df %>% 
+    rename_at(vars(starts_with(oldpref)), funs(sub(oldpref, newpref, .)))
+}
+```
+
+```{r}
+insdta <- change(insdta, '4_yr_', 'Four_yr_')
+```
+
+
+```{r}
+insdta %>% group_by(year) %>% 
+  summarise(comp_fg = mean(Four_yr_completion.first_generation_students, na.rm =T),
+            comp_nfg = mean(Four_yr_completion.no_first_generation_students, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=comp_fg), color = "darkorange")+
+  geom_point(aes(y=comp_fg), color = "darkorange")+
+  geom_line(aes(y=comp_nfg), color = "darkorchid")+
+  geom_point(aes(y=comp_nfg), color = "darkorchid")
+```
+
+
+```{r}
+four_yr_df_b <- insdta %>% select(id, name, highestdegawrd, predomdegawrd, state_fips2, ownership, public_private, region_id, region, year, starts_with("Four_yr")) %>% select(id, name, highestdegawrd, predomdegawrd, state_fips2, ownership, public_private, region_id, region, year, ends_with("income"))
+```
+
+```{r}
+four_yr_df_b_pvt <- four_yr_df_b %>% 
+  pivot_longer(cols = starts_with("Four"),
+               names_to = "fouryr_inc_lvl",
+               values_to = "fouryr_inc_lvl_size")
+```
+
+```{r}
+four_yr_df_b_pvt %>% 
+  filter(state_fips2 == 23) %>% 
+  ggplot(aes(x=fouryr_inc_lvl, y=fouryr_inc_lvl_size, fill=fouryr_inc_lvl))+
+  geom_bar(position = "dodge", fun = "mean", stat = "summary")+
+  facet_grid(predomdegawrd~public_private)+
+  ggtitle("Put in Shiny:4year cohort average number of students by income level")
+```
+```{r}
+#TIME SERIES
+four_yr_df_b_pvt %>% 
+  #filter(state_fips2 == 47) %>% 
+  group_by(year, fouryr_inc_lvl) %>% 
+  summarise(avg_comp = mean(fouryr_inc_lvl_size, na.rm = T)) %>% 
+  ggplot(aes(x=year, y=avg_comp, color = fouryr_inc_lvl))+
+  geom_line()+
+  #facet_grid(predomdegawrd~public_private)+
+  ggtitle("Put in Shiny:4year cohort average number of students by income level")
+```
+
+```{r}
+
+four_yr_piv_gen <- insdta %>% select(id, name, highestdegawrd, predomdegawrd, state_fips2, ownership, public_private, region_id, region, starts_with("Four_yr")) %>% 
+  select(id, name, highestdegawrd, predomdegawrd, state_fips2, ownership, public_private, region_id, region, ends_with("male_students")) %>%
+  pivot_longer(cols = starts_with("Four"),
+               names_to = "fouryr_gen",
+               values_to = "fouryr_gen_val")
+```
+
+```{r}
+four_yr_piv_gen %>% 
+  ggplot(aes(x=fouryr_gen, y=fouryr_gen_val, fill=fouryr_gen))+
+  geom_bar(position = "dodge", fun = "mean", stat = "summary")+
+  facet_grid(predomdegawrd~public_private)
+```
+
+
+
+
+```{r}
+insdta %>% group_by(year) %>% 
+  summarise(comp_fg = mean(Four_yr_completion.first_generation_students, na.rm =T),
+            comp_nfg = mean(Four_yr_completion.no_first_generation_students, na.rm = T)) %>% 
+  ggplot(aes(x=year))+
+  geom_line(aes(y=comp_fg), color = "darkorange")+
+  geom_point(aes(y=comp_fg), color = "darkorange")+
+  geom_line(aes(y=comp_nfg), color = "darkorchid")+
+  geom_point(aes(y=comp_nfg), color = "darkorchid")
+```
+```{r}
+insdta %>% 
+  group_by(year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment * 100)
+  
+  
+```
+```{r}
+insdta %>% 
+  filter(year > 2001) %>% 
+  group_by(year, public_private) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  
+  ggplot()+
+  geom_line(aes(x=year, y=enrollment, color = public_private))+
+  ylab('Total Enrollment')+
+  scale_x_continuous(breaks = seq(2000, 2022, 1))+
+  
+   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+         legend.title=element_blank())+
+  
+  ggtitle('Total Enrollment')
+  
+```
+
+
+
+
+
+```{r}
+enr <- insdta %>% 
+  filter(year > 2001) %>% 
+  group_by(year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment) %>% 
+  ggplot(aes(x=year, y=Rate_percent))+
+  geom_bar(stat = 'identity')+
+  ylab('Percent Change')+
+  scale_x_continuous(breaks = seq(2000, 2022, 1))+
+  scale_y_continuous(labels = percent)+
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))+
+  
+  ggtitle('Year to Year Percent Change in Enrollment')
+
+enr
+dev.off()
+
+ggsave(enr, width = 10, height = 6, dpi = 300, filename = "enr.pdf")
+
+  
+```
+
+```{r}
+enr <-
+  insdta %>% 
+  filter(region_id != 0, region_id != 1, ownership != 3) %>% 
+  filter(year > 2001) %>% 
+  group_by(public_private, year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment) %>% 
+  ggplot(aes(x=year, y=Rate_percent, fill = public_private))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ylab('Percent Change')+
+  scale_x_continuous(breaks = seq(2000, 2022, 1))+
+  scale_y_continuous(labels = percent)+
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+         legend.title=element_blank())+
+  scale_fill_manual(values = c("Private nonprofit" = "yellow3",
+                     "Public" = "lightslateblue"))+
+  
+  ggtitle('Year to Year Percent Change in Enrollment')
+
+enr
+dev.off()
+# 
+ggsave(enr, width = 10, height = 6, dpi = 300, filename = "enrcol.pdf")
+
+  
+```
+
+```{r}
+enrt <-
+  insdta %>% 
+  filter(region_id != 0, region_id != 1, ownership != 3) %>% 
+  filter(year > 2001) %>% 
+  group_by(Predom_Degree_Awarded, year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment) %>% 
+  ggplot(aes(x=year, y=Rate_percent, fill = Predom_Degree_Awarded))+
+  geom_bar(stat = 'identity', position = 'dodge')+
+  ylab('Percent Change')+
+  scale_x_continuous(breaks = seq(2000, 2022, 1))+
+  scale_y_continuous(labels = percent)+
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1),
+         legend.title=element_blank())+
+  scale_fill_manual(values = c("Associate's Degree" = "yellow3",
+                     "Bachelor's Degree" = "lightslateblue"))+
+
+  ggtitle('Year to Year Percent Change in Enrollment')
+
+enrt
+dev.off()
+#
+ggsave(enrt, width = 10, height = 6, dpi = 300, filename = "enrdegl.pdf")
+
+  
+```
+
+
+
+```{r}
+percentinc <- insdta %>% 
+  filter(region_id != 0, region_id != 9) %>% 
+  filter(year >2019) %>% 
+  group_by(state, year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment * 100) %>%
+  arrange(desc(Rate_percent)) %>% 
+  select(-c(Diff_year, Diff_growth)) %>% head() 
+```
+```{r}
+library(writexl)
+```
+
+```{r}
+writexl::write_xlsx(percentinc, "percentinc.xlsx")
+
+```
+
+
+```{r}
+percendecc <- insdta %>% 
+  filter(region_id != 0, region_id != 9) %>% 
+  filter(year >2019) %>% 
+  group_by(state, year) %>% 
+  summarize(enrollment = sum(size, na.rm = T)) %>% 
+  mutate(Diff_year = year - lag(year),
+         Diff_growth = enrollment - lag(enrollment),
+         Rate_percent = (Diff_growth/Diff_year)/enrollment * 100) %>%
+  arrange((Rate_percent)) %>% 
+  select(-c(Diff_year, Diff_growth)) %>% head() 
+```
+
+```{r}
+writexl::write_xlsx(percendecc, "percentdec.xlsx")
+
+```
+
+
+```{r}
+insdta %>% select(predomdegawrd, degrees_awarded.predominant) %>% unique()
+```
+#of colleges
+```{r}
+insdta %>% group_by(state) %>% summarise(total = n_distinct(id)) %>% arrange(total)
+```
+```{r}
+library(censusapi)
+```
+
+
+
+```{r}
+
+state_pop2 <-  getCensus(name="acs/acs5", 
+                        vintage=2022,
+                        key=census_key, 
+                        vars=c("NAME", "B01003_001E"), 
+                        region="state:*")
+```
+
+```{r}
+colnames(state_pop) <- c("state_id", "NAME", "population")
+```
+
+```{r}
+#write_csv(state_pop, "state_pop.csv")
+```
+
+
+```{r}
+inst_data_for_shiny <- read_rds('inst_data3.rds')
+```
+#join state pop data
+
+```{r}
+library(tigris)
+```
+
+```{r}
+states_b <- states(cb=T)
+```
+
+```{r}
+library(leaflet)
+```
+
+```{r}
+states_b %>% 
+  leaflet() %>% 
+  addTiles %>% 
+  addPolygons(popup = ~NAME)
+```
+
+#states_merged has population and polygon for state
+```{r}
+# states_merged <- geo_join(states_b, state_pop, "STATEFP", "state_id")
+# states_merged <- subset(states_merged, !is.na(population))
+```
+```{r}
+# pal_sb <- colorNumeric("Greens", domain=states_merged$population)
+# 
+# 
+# leaflet ()%>% 
+#   setView(-96, 37.8, 4) %>% 
+#   addPolygons(data = states_merged , 
+#               fillColor = ~pal_sb(states_merged$population), 
+#               fillOpacity = 0.9, 
+#               weight = 0.2, 
+#               smoothFactor = 0.2
+#              ) %>%
+#   addLegend(pal = pal_sb, 
+#             values = states_merged$population, 
+#             position = "bottomright", 
+#             title = "Starbucks<br />per 100,000<br/>residents")
+```
+
+```{r}
+#write_rds(states_merged, 'states_merged.rds')
+```
+
+```{r}
+#colleges_by_state <- insdta %>% group_by(state_fips2) %>% summarise(n_distinct(id))
+```
+
+```{r}
+# by_state_summary <- insdta %>% 
+#   filter(year ==2021)%>% 
+#   group_by(state_fips2) %>% 
+#   summarise(no_colleges = n_distinct(id),
+#             no_students = sum(size))
+# 
+# by_state_summary
+```
+```{r}
+by_state_summary_b <- left_join(by_state_summary, state_pop, by = c("state_fips2" = "state_id"))
+by_state_summary_b
+```
+
+```{r}
+#by_state_summary_b <- by_state_summary_b %>% mutate(co_capita = round(no_colleges/population*100000, 2),
+                                                    stu_capita = round(no_students/population *100000, 0))
+```
+
+```{r}
+#write_csv(by_state_summary_b, 'by_state_summary.csv')
+```
+
+```{r}
+#states_merged_b <-geo_join(states_merged, by_state_summary_b, "STATEFP", "state_fips2")
+#states_merged <- subset(states_merged, !is.na(population))
+```
+
+```{r}
+#write_rds(states_merged_b, 'states_merged_cap.rds')
+```
+
+```{r}
+#state.name[match(insdta$state, state.abb)]
+```
+
+```{r}
+prgmsg <- read_csv('prgms.csv')
+
+programlist <- as.list(prgmsg %>% select(starts_with("program_percentage.")) %>% colnames())
+programlist <- programlist[-39]
+```
+
+```{r}
+programlist
+```
+
+```{r}
+prgmsg %>% select(starts_with("program_percentage.")) %>% rename(gsub("program_percentage.", "")
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+n <-prgmsg %>% select(starts_with("program_percentage.")) %>% 
+  
+
+```
+
+```{r}
+prgnames <- read_csv('prgnames.csv')
+```
+
+```{r}
+prglist <- as.list(prgnames)
+```
+```{r}
+prglist2 <- as.list(prgnames[['name']])
+```
+
+
+```{r}
+oldName <- as.list(prgmsg %>% select(starts_with("program_percentage.")) %>% colnames())
+```
+
+
+```{r}
+setNames(prgmsg, old = c(oldName),  new =c(prglist2))
+```
+
+```{r}
+library(data.table)
+```
+
+```{r}
+xy <- list(prglist2, oldName)
+```
+
+```{r}
+xy[1, 1]
+```
+
+```{r}
+prglist2
+```
+
+```{r}
+library(ggiraph)
+```
+
+```{r}
+
+```
+
