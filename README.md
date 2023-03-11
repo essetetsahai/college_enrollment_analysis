@@ -14,7 +14,10 @@ The minimum viable product (MVP) will include chart of trend in college enrollme
 
 
 ## Data Sources
-The data that will be used is the College Scorecard data from [collegescorecard.ed.gov/data/]. 
+The data that will be used is the College Scorecard data from [collegescorecard.ed.gov/data/](https://collegescorecard.ed.gov/data/) 
 
 ## Known Issues and Challenges
 The dataset contains a large number of fields, so it may be challenging to narrow down to a few fields to focus on for the project. My approach is to manage this is to dedicate some time to do exploratory data analysis to understand the relationships between the different fields to identify the variables that may be most important for the project.
+
+## Final Shiny App
+You can visit the Shiny App [here](https://essete-tsahai.shinyapps.io/trends_college_enrollment/?_ga=2.130579535.1513031207.1678554968-1688126502.1673568243).
